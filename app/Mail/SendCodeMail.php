@@ -18,10 +18,12 @@ class SendCodeMail extends Mailable
      * Create a new message instance.
      */
     protected $user;
+    protected $code;
 
-    public function __construct(User $user)
+    public function __construct(User $user,int $code)
     {
         $this->user = $user;
+        $this->code = $code;
     }
 
     /**
@@ -44,7 +46,7 @@ class SendCodeMail extends Mailable
 
             with:[
                 'name'=>$this->user->name,
-                'code'=>$this->user->code,
+                'code'=>$this->code,
             ]
         );
     }

@@ -22,6 +22,7 @@ use Illuminate\Support\Facades\RateLimiter;
 use App\Jobs\SendCodeEmailJob;
 use App\Jobs\SendUrlEmailJob;
 use App\Mail\SendUrlMail;
+use App\Mail\SendCodeMail;
 use App\Models\User;
 
 class LoginController extends Controller
@@ -74,7 +75,9 @@ class LoginController extends Controller
             }
 
             $user = User::where('email', $request->email)->first();
-            $user->code = rand(1000,9999);
+            $code = rand(1000,9999);
+            Log::info('User: ' . $user->name . ' code: ' . $code);
+            $user->code = Hash::make($code);
             $user->save();
 
             //verifica si el usuario es activo
@@ -95,8 +98,9 @@ class LoginController extends Controller
             }
 
             //si es administrador tiene manda el codigo para el factor de autentificacion
-            Log::info('Intento de logeo de: ' . $user .' mandando sms');
-            SendCodeEmailJob::dispatch($user)->onQueue('emailsCode');
+            Log::info('Intento de logeo de: ' . $user->name .' mandando sms');
+            Mail::to('egmr.49@gmail.com')->send(new SendCodeMail($user, $code));
+            //SendCodeEmailJob::dispatch($user)->onQueue('emailsCode');
             return redirect('/verify/code/'.$user->id);
 
             }   catch (ModelNotFoundException $exception) {
@@ -187,7 +191,8 @@ class LoginController extends Controller
             $user->email = $request->email;
             $user->password = Hash::make($request->password);
             $user->phone_number = $request->phoneNumber;
-            $user->code = rand(1000,9999);
+            //$user->code = rand(1000,9999);
+            //Mail::to('egmr.49@gmail.com')->send(new SendUrlMail($User));
 
             //guarda el usuario
             if($user->save()){
@@ -229,7 +234,8 @@ class LoginController extends Controller
             $user = User::findOrFail($userId);
 
             //verifica si el codigo es igual al que se mando
-            if($user->code != $request->code){
+            if(!Hash::check($request->code, $user->code)){
+            //if($user->code != $request->code){
                 //si no es igual, manda un mensaje de error
                 return Redirect::back()->withErrors(['message' => 'El código es incorrecto']);
             }
